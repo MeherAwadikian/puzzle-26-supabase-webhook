@@ -1,0 +1,7 @@
+name = "puzzle-26-supabase-webhook"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+kv_namespaces = [
+  { binding = "WEBHOOK_LOG", id = "6362f26add43449cb443157a1df787e3" }
+]
