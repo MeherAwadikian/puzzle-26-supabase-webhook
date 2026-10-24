@@ -13,11 +13,26 @@ the Studio UI.
   puzzle #145/#25), table `public.webhook_demo_events`.
 - **Trigger function**: `public.notify_webhook_demo_events()`, fires `AFTER
   INSERT OR UPDATE`, calls `net.http_post` with `TG_OP`/table/schema/record/
-  old_record as the JSON body.
-- **Worker** (this repo): `POST /webhook` stores the payload in a KV log,
-  `GET /log` returns the last 50 received payloads, `POST /log/clear` resets it.
+  old_record as the JSON body, plus an `x-webhook-secret` header pulled from
+  Supabase Vault (`puzzle26_webhook_secret`) at call time (not hardcoded in
+  the function source).
+- **Worker** (this repo): `POST /webhook` validates the `x-webhook-secret`
+  header against the `WEBHOOK_SECRET` Worker secret (timing-safe compare)
+  before storing the payload in a KV log. `GET /log` and `POST /log/clear`
+  require `Authorization: Bearer <ADMIN_TOKEN>` (also a Worker secret,
+  timing-safe compare). Both secrets are set via `wrangler secret put`, never
+  committed to source.
+
+## Auth
+
+- Supabase -> Worker: `x-webhook-secret: <shared secret>` header, checked
+  against `env.WEBHOOK_SECRET`.
+- Caller -> Worker admin endpoints (`GET /log`, `POST /log/clear`):
+  `Authorization: Bearer <admin token>` header, checked against
+  `env.ADMIN_TOKEN`.
+- Unauthenticated requests to any of these get `401 Unauthorized`.
 
 ## Live
 
 - Worker: https://puzzle-26-supabase-webhook.krikormher.workers.dev
-- `GET /log` to see real delivered webhook payloads.
+- `GET /log` (with the admin bearer token) to see real delivered webhook payloads.
